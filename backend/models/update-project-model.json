@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "part",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "minLength": 2,
+      "pattern": "^[^-\\s][a-zA-Z0-9_\\s-]+$"
+    },
+    "description": {
+      "type": "string",
+      "pattern": "^[^-\\s][a-zA-Z0-9_\\s-]+$",
+      "minLength": 2
+    },
+    "projectStatus": {
+      "type": "string",
+      "pattern": "^[^-\\s][a-zA-Z0-9_\\s-]+$",
+      "minimum": 2
+    },
+    "priority": {
+      "type": "string",
+      "pattern": "^[^-\\s][a-zA-Z0-9_\\s-]+$",
+      "minimum": 2
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "projectStatus",
+    "priority"
+  ],
+  "additionalProperties": false
+}

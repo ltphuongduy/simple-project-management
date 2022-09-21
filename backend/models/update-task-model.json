@@ -1,0 +1,41 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+    "title": "part",
+    "type": "object",
+    "properties": {
+      "todo": {
+        "type": "string",
+        "pattern": "^[^-\\s][a-zA-Z0-9_\\s-]+$",
+        "minLength": 2
+      },
+      "assignedTo": {
+        "type": "string",
+        "pattern": "^[^-\\s][a-zA-Z0-9_\\s-]+$",
+        "minimum": 2
+      },
+      "dueDate": {
+        "type": "string",
+        "pattern": "^[^-\\s][a-zA-Z0-9_\\s-]+$",
+        "minimum": 2
+      },
+      "taskStatus": {
+        "type": "string",
+        "pattern": "^[^-\\s][a-zA-Z0-9_\\s-]+$",
+        "minimum": 2
+      },
+      "priority": {
+        "type": "string",
+        "pattern": "^[^-\\s][a-zA-Z0-9_\\s-]+$",
+        "minimum": 2
+      }
+    },
+    "required": [
+      "todo",
+      "assignedTo",
+      "dueDate",
+      "taskStatus",
+      "priority"
+    ],
+    "additionalProperties": false
+  }
+  

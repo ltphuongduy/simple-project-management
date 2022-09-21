@@ -1,0 +1,287 @@
+app: simple-project-management
+service: simple-project-management
+
+plugins:
+  - serverless-webpack
+  - serverless-iam-roles-per-function
+  - serverless-plugin-tracing
+  - serverless-reqvalidator-plugin
+  - serverless-aws-documentation
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  lambdaHashingVersion: '20201221'
+
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-west-2'}
+
+  tracing:
+    lambda: true
+    apiGateway: true
+
+  # Use these variables in the functions and resources section below. For example,
+  # ${self:provider.environment.ATTACHMENT_S3_BUCKET}
+  environment:
+    PROJECTS_TABLE: Projects-${self:provider.stage}
+    ATTACHMENT_S3_BUCKET: spms-duyltp-report-${self:provider.stage}
+    SIGNED_URL_EXPIRATION: 300
+
+  logs:
+    # Enable API Gateway logs
+    restApi: true
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - xray:PutTelemetryRecords
+            - xray:PutTraceSegments
+          Resource: '*'
+
+custom:
+  documentation:
+    models:
+      - name: CreateProjectRequest
+        contentType: 'application/json'
+        schema: ${file(./models/create-project-model.json)}
+      - name: UpdateProjectRequest
+        contentType: 'application/json'
+        schema: ${file(./models/update-project-model.json)}
+      - name: CreateTaskRequest
+        contentType: 'application/json'
+        schema: ${file(./models/create-task-model.json)}
+      - name: UpdateTaskRequest
+        contentType: 'application/json'
+        schema: ${file(./models/update-task-model.json)}
+
+functions:
+  Auth:
+    handler: src/lambda/auth/auth0Authorizer.handler
+
+  GetProjects:
+    handler: src/lambda/http/getProjects.handler
+    events:
+      - http:
+          method: get
+          path: projects
+          cors: true
+          authorizer: Auth
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+        Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PROJECTS_TABLE}'
+
+  CreateProject:
+    handler: src/lambda/http/createProject.handler
+    events:
+      - http:
+          method: post
+          path: projects
+          cors: true
+          authorizer: Auth
+          reqValidatorName: 'RequestBodyValidator'
+          documentation:
+            summary: 'Create new project'
+            description: 'Allow to create new project'
+            requestModels:
+              'application/json': CreateProjectRequest
+
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:PutItem
+        Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PROJECTS_TABLE}'
+
+  UpdateProject:
+    handler: src/lambda/http/updateProject.handler
+    events:
+      - http:
+          method: patch
+          cors: true
+          path: projects/{projectId}
+          reqValidatorName: 'RequestBodyValidator'
+          documentation:
+            summary: 'Update project'
+            description: 'Allow to update project information'
+            requestModels:
+              'application/json': UpdateProjectRequest
+            
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PROJECTS_TABLE}'
+
+  DeleteProject:
+    handler: src/lambda/http/deleteProject.handler
+    events:
+      - http:
+          method: delete
+          cors: true
+          path: projects/{projectId}
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:DeleteItem
+        Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PROJECTS_TABLE}'
+
+  CreateTask:
+    handler: src/lambda/http/createTask.handler
+    events:
+      - http:
+          method: patch
+          cors: true
+          path: projects/{projectId}/task
+          reqValidatorName: 'RequestBodyValidator'
+          documentation:
+            summary: 'Create task'
+            description: 'Allow to create task for project'
+            requestModels:
+              'application/json': CreateTaskRequest
+            
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PROJECTS_TABLE}'
+
+  UpdateTask:
+    handler: src/lambda/http/updateTask.handler
+    events:
+      - http:
+          method: put
+          cors: true
+          path: projects/{projectId}/task/{taskId}
+          reqValidatorName: 'RequestBodyValidator'
+          documentation:
+            summary: 'Update task'
+            description: 'Allow to update task for project'
+            requestModels:
+              'application/json': UpdateTaskRequest
+            
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PROJECTS_TABLE}'
+
+  DeleteTask:
+    handler: src/lambda/http/deleteTask.handler
+    events:
+      - http:
+          method: patch
+          cors: true
+          path: projects/{projectId}/task/{taskId}
+          documentation:
+            summary: 'Delete task'
+            description: 'Allow to delete task for project'
+
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PROJECTS_TABLE}'
+
+  GenerateUploadUrl:
+    handler: src/lambda/http/generateUploadUrl.handler
+    events:
+      - http:
+          method: post
+          cors: true
+          path: projects/{projectId}/attachment
+    iamRoleStatements:
+      - Effect: Allow
+        Action:
+          - dynamodb:Query
+          - dynamodb:UpdateItem
+        Resource: 'arn:aws:dynamodb:${self:provider.region}:*:table/${self:provider.environment.PROJECTS_TABLE}'
+
+resources:
+  Resources:
+    GatewayResponseDefault4XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+          gatewayresponse.header.Access-Control-Allow-Methods: "'GET,OPTIONS,POST'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: ApiGatewayRestApi
+    PartsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: projectId
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: projectId
+            KeyType: RANGE
+        LocalSecondaryIndexes:
+          - IndexName: VENDOR_PART_NUM_INDEX
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: createdAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:provider.environment.PROJECTS_TABLE}
+    RequestBodyValidator:
+      Type: AWS::ApiGateway::RequestValidator
+      Properties:
+        Name: 'request-body-validator'
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        ValidateRequestBody: true
+        ValidateRequestParameters: false
+
+    AttachmentsBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.ATTACHMENT_S3_BUCKET}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins:
+                - '*'
+              AllowedHeaders:
+                - '*'
+              AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - DELETE
+                - HEAD
+              MaxAge: 3000
+
+    BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        PolicyDocument:
+          Id: MyPolicy
+          Version: '2012-10-17'
+          Statement:
+            - Sid: PublicReadForGetBucketObjects
+              Effect: Allow
+              Principal: '*'
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+              Resource: 'arn:aws:s3:::${self:provider.environment.ATTACHMENT_S3_BUCKET}/*'
+        Bucket: !Ref AttachmentsBucket
