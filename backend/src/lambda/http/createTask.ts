@@ -13,16 +13,14 @@ export const handler = middy(
     const userId = getUserId(event);
 
     try {
-      await createTask(taskRequest, userId, projectId)
+      const res = await createTask(taskRequest, userId, projectId)
       return {
         statusCode: 201,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Credentials': true
         },
-        body: JSON.stringify({
-          message: 'Create task success'
-        })
+        body: JSON.stringify({ item: res })
       }
     } catch (err) {
       return {

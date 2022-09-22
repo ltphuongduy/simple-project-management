@@ -46,7 +46,7 @@ export const generateUploadURL = async (userId: string, projectId: string): Prom
     return url 
 }
 
-export const createTask = async (task: CreateTaskRequest, userId: string, projectId: string): Promise<void> => {
+export const createTask = async (task: CreateTaskRequest, userId: string, projectId: string): Promise<ProjectItem> => {
     logger.log('info', 'Received task create request for project: '.concat(projectId))
     const taskId = uuid.v4()
     const newTask: TaskItem = {
@@ -54,7 +54,8 @@ export const createTask = async (task: CreateTaskRequest, userId: string, projec
         taskId,
         taskStatus:'doing'
     }
-    await projectAccess.createTask(newTask, userId, projectId)
+    let res = await projectAccess.createTask(newTask, userId, projectId)
+    return res;
 }
 
 export const updateTask = async (updatedTask: UpdateTaskRequest, userId: string, projectId: string, taskId: string): Promise<void> => {
@@ -62,7 +63,8 @@ export const updateTask = async (updatedTask: UpdateTaskRequest, userId: string,
     await projectAccess.updateTask(updatedTask, userId, projectId, taskId)
 }
 
-export const deleteTask = async (userId: string, projectId: string, taskId: string): Promise<void> => {
+export const deleteTask = async (userId: string, projectId: string, taskId: string): Promise<ProjectItem> => {
     logger.log('info', 'Received task delte request for project: '.concat(projectId))
-    await projectAccess.deleteTask(userId, projectId, taskId)
+    let res = await projectAccess.deleteTask(userId, projectId, taskId)
+    return res
 }

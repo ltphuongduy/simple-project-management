@@ -12,16 +12,14 @@ export const handler = middy(
     const userId = getUserId(event);
 
     try {
-      await deleteTask(userId, projectId, taskId)
+      let res = await deleteTask(userId, projectId, taskId)
       return {
         statusCode: 201,
         headers: {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Credentials': true
         },
-        body: JSON.stringify({
-          message: 'Delete task success'
-        })
+        body: JSON.stringify({item: res})
       }
     } catch (err) {
       return {

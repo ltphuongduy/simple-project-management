@@ -57,7 +57,7 @@ export class ProjectAccess {
         return project
     }
 
-    createTask = async (task: TaskItem, userId: string, projectId: string): Promise<void> => {
+    createTask = async (task: TaskItem, userId: string, projectId: string): Promise<ProjectItem> => {
         logger.log('info', 'Create new task: '.concat(JSON.stringify(task)))
         let currentProject = await this.getProjectByProjectId(userId, projectId);
         let newTasks: TaskItem[]
@@ -76,6 +76,8 @@ export class ProjectAccess {
                     ":tasks": newTasks
                 }
             }).promise()
+            currentProject.tasks = newTasks;
+            return currentProject
         } else {
             logger.log('error', 'project not found: '.concat(JSON.stringify(currentProject)))
             throw new Error("Project not found")
@@ -147,7 +149,7 @@ export class ProjectAccess {
         }).promise()
     }
 
-    deleteTask = async (userId: string, projectId: string, taskId: string): Promise<void> => {
+    deleteTask = async (userId: string, projectId: string, taskId: string): Promise<ProjectItem> => {
         let currentProject = await this.getProjectByProjectId(userId, projectId);
         if (currentProject) {
             let currentTasks = currentProject.tasks
@@ -165,6 +167,8 @@ export class ProjectAccess {
                     ":tasks": updatedTaskList
                 }
             }).promise()
+            currentProject.tasks = updatedTaskList
+            return currentProject
         } else {
             logger.log('error', 'project not found: '.concat(JSON.stringify(currentProject)))
             throw new Error("Project not found")
@@ -172,8 +176,8 @@ export class ProjectAccess {
     }
 
     getUploadURL = async (userId: string, projectId: string): Promise<string> => {
-        const imageId = uuid.v4()
-        const presignedUrl = await genPresignUrl(imageId)
+        const reportId = uuid.v4()
+        const presignedUrl = await genPresignUrl(reportId)
         this.docClient.update({
             TableName: this.projectsTable,
             Key: {
@@ -182,7 +186,7 @@ export class ProjectAccess {
             },
             UpdateExpression: "set attachmentUrl = :attachmentUrl",
             ExpressionAttributeValues: {
-                ":attachmentUrl": `https://${this.bucketName}.s3.amazonaws.com/${imageId}`,
+                ":attachmentUrl": `https://${this.bucketName}.s3.amazonaws.com/${reportId}`,
             }
         }, (err, data) => {
             if (err) {

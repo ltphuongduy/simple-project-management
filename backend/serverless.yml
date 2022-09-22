@@ -136,12 +136,13 @@ functions:
     events:
       - http:
           method: patch
-          cors: true
           path: projects/{projectId}/task
+          cors: true
+          authorizer: Auth
           reqValidatorName: 'RequestBodyValidator'
           documentation:
-            summary: 'Create task'
-            description: 'Allow to create task for project'
+            summary: 'Create new task'
+            description: 'Allow to create new task'
             requestModels:
               'application/json': CreateTaskRequest
             
@@ -177,13 +178,14 @@ functions:
     handler: src/lambda/http/deleteTask.handler
     events:
       - http:
-          method: patch
-          cors: true
+          method: delete
           path: projects/{projectId}/task/{taskId}
+          cors: true
+          authorizer: Auth
           documentation:
             summary: 'Delete task'
-            description: 'Allow to delete task for project'
-
+            description: 'Allow to delete task'
+            
     iamRoleStatements:
       - Effect: Allow
         Action:
